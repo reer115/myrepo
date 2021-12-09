@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title>Настройка iptables в Linux – Telegraph</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="MobileOptimized" content="176">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Настройка iptables в Linux">
+    <meta property="og:description" content="Рассмотрим использование наиболее популярного в дистрибутивах Linux межсетевого экрана iptables на Ubuntu 20.04 LTS 64-bit.
+Используя любой SSH клиент, например&nbsp;PuTTY&nbsp;для Windows подключаемся к машине.
+Выполним первоначальную настройку сервера с целью повышения степени защищенности системы. Все действия, описанные в данной статье, выполняются с правами суперпользователя root.
+Актуализируем информацию о доступных пакетах в используемых репозиториях:
+apt update
+
+С точки зрения безопасности, заходить на сервер…">
+    <meta property="og:image" content="">
+    <meta property="og:site_name" content="Telegraph">
+    <meta property="article:published_time" content="2021-11-25T21:28:00+0000">
+    <meta property="article:modified_time" content="2021-11-25T21:28:00+0000">
+    <meta property="article:author" content="https://t.me/sysadminof">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Настройка iptables в Linux">
+    <meta name="twitter:description" content="Рассмотрим использование наиболее популярного в дистрибутивах Linux межсетевого экрана iptables на Ubuntu 20.04 LTS 64-bit.
+Используя любой SSH клиент, например&nbsp;PuTTY&nbsp;для Windows подключаемся к машине.
+Выполним первоначальную настройку сервера с целью повышения степени защищенности системы. Все действия, описанные в данной статье, выполняются с правами суперпользователя root.
+Актуализируем информацию о доступных пакетах в используемых репозиториях:
+apt update
+
+С точки зрения безопасности, заходить на сервер…">
+    <meta name="twitter:image" content="">
+    <link rel="canonical" href="https://telegra.ph/Nastrojka-iptables-v-Linux-11-25-2">
+    <link rel="shortcut icon" href="https://te.legra.ph/favicon.ico?1" type="image/x-icon">
+    <link rel="icon" type="image/png" href="https://te.legra.ph/images/favicon.png?1" sizes="16x16">
+    <link rel="icon" type="image/png" href="https://te.legra.ph/images/favicon_2x.png?1" sizes="32x32">
+    <link href="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/quill.css" rel="stylesheet">
+    <link href="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/core.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="tl_page_wrap">
+      <div class="tl_page">
+        <main class="tl_article">
+          <header class="tl_article_header">
+            <h1 dir="auto">Настройка iptables в Linux</h1>
+            <address dir="auto">
+              <a rel="author" href="https://t.me/sysadminof" target="_blank">https://t.me/sysadminof</a><!--
+           --><time datetime="2021-11-25T21:28:00+0000">November 26, 2021</time>
+            </address>
+          </header>
+          <article id="_tl_editor" class="tl_article_content ql-container ql-disabled"><div class="ql-editor" dir="auto" contenteditable="false"><h1 data-placeholder="Title" data-label="Title">Настройка iptables в Linux</h1><address data-placeholder="Your name" data-label="Author"><a href="https://t.me/sysadminof" target="_blank">https://t.me/sysadminof</a></address><p>Рассмотрим использование наиболее популярного в дистрибутивах Linux межсетевого экрана iptables на Ubuntu 20.04 LTS 64-bit.</p><p>Используя любой SSH клиент, например&nbsp;PuTTY&nbsp;для Windows подключаемся к машине.</p><p>Выполним первоначальную настройку сервера с целью повышения степени защищенности системы. Все действия, описанные в данной статье, выполняются с правами суперпользователя root.</p><p>Актуализируем информацию о доступных пакетах в используемых репозиториях:</p><pre spellcheck="false">apt update
+</pre><p>С точки зрения безопасности, заходить на сервер сразу пользователем root неправильно, поэтому создаем непривилегированного пользователя с именем&nbsp;fwuser:</p><pre spellcheck="false">adduser fwuser
+</pre><p>В ходе интерактивного диалога необходимо задать пароль (New password), подтвердить его (Retype new password), другие пункты не обязательно заполнять, можно проигнорировать их, нажимая ENTER. В финальном вопросе Is the information correct? [Y/n] нажимаем Y, затем ENTER.</p><p>Добавляем пользователя&nbsp;fwuser&nbsp;в группу&nbsp;sudo&nbsp;для возможности использования повышенных прав в системе:</p><pre spellcheck="false">usermod -aG sudo fwuser
+</pre><p>Редактируем конфигурационный файл SSH-сервера:</p><pre spellcheck="false">nano /etc/ssh/sshd_config
+</pre><p>Рекомендуется сменить стандартный номер порта, допустим на&nbsp;22200. Находим строку&nbsp;#Port 22&nbsp;и приводим ее к виду:</p><pre spellcheck="false">Port 22200
+</pre><p>Запретим входить напрямую пользователем&nbsp;root. Ищем строку&nbsp;PermitRootLogin yes, меняем значение на&nbsp;no, в итоге строка выглядит так:</p><pre spellcheck="false">PermitRootLogin no
+</pre><p>Нажимаем комбинацию клавиш Ctrl+O, внизу отобразится строка:&nbsp;File Name to Write: /etc/ssh/sshd_config, подтверждаем нажатием ENTER. Изменения сохранены, теперь выходим из редактора нажатием сочетания клавиш Ctrl+X.</p><p>Для вступления в силу изменений конфигурации SSH сервера — перезапускаем его:</p><pre spellcheck="false">service sshd restart
+</pre><p>Важно заметить, что при следующем подключении к серверу, подключаться нужно к порту&nbsp;22200. Вход пользователю&nbsp;root&nbsp;запрещен. Авторизоваться необходимо вновь созданным пользователем&nbsp;fwuser, и только после успешного входа, следует повысить уровень привилегий в системе командой:</p><pre spellcheck="false">sudo su
+</pre><p>Система попросит ввести свой пароль (не&nbsp;root) и нажать ENTER, если следующая строка начинается на&nbsp;root, а заканчивается знаком&nbsp;#&nbsp;— привилегии суперпользователя получены успешно.</p><p><br></p><h3 id="Введение">Введение</h3><p>iptables — это утилита командной строки, используемая для управления встроенным брандмауэром netfilter, доступным в ядре Linux, начиная с версии 2.4. Брандмауэр — это узел сети, на котором происходит фильтрация сетевого трафика на основе заданных администратором правил. Обеспечить безопасность сервера или инфраструктуры, означает обеспечить отказоустойчивость и стабильность работы ваших серверов и приложений, что крайне чувствительно для бизнеса или персональных проектов.</p><p>В глобальной сети огромное количество угроз — боты, периодически прощупывают стандартные точки входа в системы, хулиганы, любопытные, взломщики — люди, целенаправленно пытающиеся получить несанкционированный доступ к информационным системам. Задача iptables — исключить, либо, по крайней мере, минимизировать негативное воздействие со стороны разного рода правонарушителей.</p><p><br></p><h3 id="Установка-iptables">Установка iptables</h3><p><br></p><p>Проверка установки при помощи команды:</p><pre spellcheck="false">iptables -V
+</pre><p>Будет выведена информация о версии пакета.</p><p>В образах CentOS 8 64-bit и CentOS 8 Stream 64-bit,&nbsp;iptables&nbsp;отсутствует, поскольку разработчики отказались от него в пользу более нового пакета —&nbsp;nftables, поддержка которого на уровне ядра доступна с версии 3.13. Если существует необходимость использовать именно&nbsp;iptables&nbsp;— требуется выполнить следующий порядок действий:</p><pre spellcheck="false">yum install iptables-services
+</pre><p>Включение сервиса в автозагрузку:</p><pre spellcheck="false">systemctl enable iptables
+</pre><p>Запуск сервиса:</p><pre spellcheck="false">systemctl start iptables
+</pre><p>Межсетевой экран готов к использованию.</p><p><br></p><h3 id="Порядок-прохождения-таблиц-и-цепочек">Порядок прохождения таблиц и цепочек</h3><p>Любой, поступивший пакет на сервер с iptables, проходит через ядро, а именно межсетевой экран netfilter. Каждый из них классифицируется в зависимости от его назначения, попадает в соответствующую ему таблицу и проходит по цепочкам, содержащим правила, установленные администратором.</p><p>На основе этих правил, выполняется действие — принять пакет, отбросить, удалить или передать следующему узлу сети. Иллюстрация, представленная ниже, наглядно показывает путь прохождения пакета по системе:</p><p><br></p><figure contenteditable="false"><div class="figure_wrapper"><img src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/PR-15977_102x.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p><br></p><p><br></p><p>Данный рисунок не отражает истинную архитектуру брандмауэра, а показывает только логику работы. Существует много распространенных заблуждений по поводу уровней вложенности таблиц, цепочек, и правил. Самым верхним уровнем представления являются таблицы, которые содержат набор свойственных им цепочек. Цепочки содержат списки правил. Схематично «матрешка» выглядит следующим образом:</p><figure contenteditable="false"><div class="figure_wrapper"><img src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/PR-15977_72x.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p><br></p><p><br></p><h3 id="Синтаксис-iptables">Синтаксис iptables</h3><p>Сетевой экран iptables очень гибок в настройке и имеет огромное количество разнообразных ключей и опций. Общий вид управляющей команды:</p><pre spellcheck="false">iptables таблица команда цепочка критерии действие
+</pre><p>Рассмотрим каждый элемент в отдельности.</p><p><br></p><h3 id="Пакет">Пакет</h3><p>Под пакетом понимают структурированный блок данных, содержащий в себе как пользовательскую информацию, называемую ещё полезной нагрузкой, так и служебную информацию, например об адресе отправителя, получателя, времени жизни пакета и многое другое.</p><p><br></p><h3 id="Цепочки">Цепочки</h3><p>Существует 5 видов цепочек:</p><ul><li>PREROUTING&nbsp;— предназначена для первичной обработки входящих пакетов, адресованных как непосредственно серверу, так и другим узлам сети. Сюда попадает абсолютно весь входящий трафик для дальнейшего анализа.</li><li>INPUT&nbsp;— для входящих пакетов, отправленных непосредственно этому серверу.</li><li>FORWARD&nbsp;— для проходящих пакетов, не адресованных этому компьютеру, предназначены для передачи следующему узлу, в случае, если сервер выполняет роль маршрутизатора.</li><li>OUTPUT&nbsp;— для пакетов, отправленных с этого сервера.</li><li>POSTROUTING&nbsp;— здесь оказываются пакеты, предназначенные для передачи на другие узлы сети.</li></ul><p>Также есть возможность создавать и удалять собственные цепочки, в большинстве случаев, в этом нет необходимости. Названия цепочек пишут заглавными буквами.</p><p><br></p><h3 id="Таблицы">Таблицы</h3><p>В netfilter существуют 5 типов таблиц, каждая из них имеет свое назначение.</p><h4 id="Таблица-raw">Таблица raw</h4><p>Содержит цепочки&nbsp;PREROUTING&nbsp;и&nbsp;OUTPUT, здесь производятся манипуляции с пакетами до задействования механизма определения состояний.</p><h4 id="Таблица-mangle">Таблица mangle</h4><p>Предназначена для модификации заголовков сетевых пакетов, таких параметров как&nbsp;ToS&nbsp;(Type of Service),&nbsp;TTL&nbsp;(Time To Live),&nbsp;MARK. Содержит все существующие пять цепочек.</p><h4 id="Таблица-nat">Таблица nat</h4><p>Используется для трансляции сетевых адресов, т.е. подмены адреса получателя/отправителя, применяется, если сервер используется в качестве маршрутизатора. Содержит цепочки&nbsp;PREROUTING,&nbsp;OUTPUT,&nbsp;POSTROUTING.</p><h4 id="Таблица-filter">Таблица filter</h4><p>Основная таблица, служит для фильтрации пакетов, именно здесь происходит принятие решений о разрешении или запрете дальнейшего движения пакета в системе. Используется по умолчанию, если явно не указано имя другой таблицы. Содержит цепочки&nbsp;INPUT,&nbsp;FORWARD&nbsp;и&nbsp;OUTPUT.</p><h4 id="Таблица-security">Таблица security</h4><p>Используется для взаимодействия с внешними системами безопасности, в частности с SELinux и AppArmor. Содержит цепочки&nbsp;INPUT,&nbsp;OUTPUT&nbsp;и&nbsp;FORWARD.</p><p>Имена таблиц принято писать строчными буквами.</p><p><br></p><h3 id="Действия">Действия</h3><p>Правилами задается поведение для iptables, каким образом поступить с тем или иным пакетом при попадании под заданные критерии. Решения, которые принимает брандмауэр, называют действиями, самые распространенные из них:</p><ul><li>ACCEPT&nbsp;— разрешить дальнейшее прохождение пакета по системе;</li><li>DROP&nbsp;— выбросить пакет без уведомления отправителя;</li><li>REJECT&nbsp;— отказать в прохождении пакета с уведомлением отправителя, такой способ может привести к дополнительным затратам ресурсов процессора, поэтому, в большинстве случаев рекомендуется использовать DROP;</li><li>LOG&nbsp;— зафиксировать информацию о пакете в файле системного журнала;</li><li>MARK&nbsp;— позволяет помечать определенные пакеты, например для маршрутизации, данная метка перестает существовать, как только пакет покинет брандмауэр;</li><li>CONNMARK&nbsp;— то же самое, что и MARK, только для соединений;</li><li>QUEUE&nbsp;— отправляет пакет в очередь приложению для дальнейшего взаимодействия;</li><li>RETURN&nbsp;— прекращение движения пакета по текущей цепочке и возврат в предыдущую цепочку. Если текущая цепочка единственная — к пакету будет применено действие по умолчанию;</li><li>REDIRECT&nbsp;— перенаправляет пакет на указанный порт, в пределах этого же узла, применяется для реализации «прозрачного» прокси;</li><li>DNAT&nbsp;— подменяет адрес получателя в заголовке IP-пакета, основное применение — предоставление доступа к сервисам снаружи, находящимся внутри сети;</li><li>SNAT&nbsp;— служит для преобразования сетевых адресов, применимо, когда за сервером находятся машины, которым необходимо предоставить доступ в Интернет, при этом от провайдера имеется статический IP-адрес;</li><li>MASQUERADE&nbsp;— то же, что и SNAT, но главное отличие в том, что может использоваться, когда провайдер предоставляет динамический адрес, создаёт дополнительную нагрузку на систему по сравнению с SNAT;</li><li>TOS&nbsp;— позволяет управлять битами в одноименном поле заголовка IP-пакета;</li><li>ULOG&nbsp;— более продвинутый вариант записи информации, может писать как в обычный текстовый файл, так и в базу данных;</li><li>TTL&nbsp;— используется для изменения значения поля одноименного заголовка IP-пакета, устанавливает время жизни пакета.</li></ul><h3 id="Команды">Команды</h3><p>Для iptables команда — это инструкция к действию, при помощи них можно добавлять, удалять и сбрасывать все правила, задавать действия по умолчанию и многое другое. Команды могут подаваться как в сокращенном, так и в полном виде, более подробно в таблице:</p><p><br></p><figure contenteditable="false"><div class="figure_wrapper"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><h3 id="Критерии">Критерии</h3><p>Чтобы к пакету применить какое-либо действие, необходимо, чтобы он попал под определенные критерии. Одно правило может содержать несколько критериев. Они, как и команды, имеют полную и сокращенную форму. Некоторые из них поддерживают логическую&nbsp;НЕ, если перед ними поставить знак&nbsp;!&nbsp;— критерий будет инвертирован. Список в таблице ниже:</p><p><br></p><figure contenteditable="false"><div class="figure_wrapper"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><h3 id="Состояние-соединений">Состояние соединений</h3><p>Система отслеживания состояния соединений conntrack — важная часть сетевого стека linux, встроенная в ядро. Используется для сопоставления пакетов с конкретными соединениями. Под анализ попадают все пакеты, кроме помеченных&nbsp;NOTRACK, в таблице&nbsp;raw. Все пакеты классифицируются на:</p><ul><li>NEW&nbsp;— открывается новое соединение, пришел только первый пакет;</li><li>ESTABLISHED&nbsp;— соединение установлено, пришел уже не первый пакет в рамках этого сеанса. При правильной настройке iptables — такие пакеты проходят по системе без фильтрации, поскольку она уже была выполнена для первого пакета соединения;</li><li>RELATED&nbsp;— открывается новое соединение, связанное с другим сеансом, имеющим статус ESTABLISHED;</li><li>INVALID&nbsp;— помечаются пакеты, которые не связаны ни с одним из существующих соединений, и не могут создать новое, их невозможно идентифицировать. В целях безопасности рекомендуется остановить движение таких пакетов по системе, используя действие DROP.</li></ul><h3 id="Основные-команды-iptables">Основные команды iptables</h3><h3 id="Как-посмотреть-список-правил-iptables">Как посмотреть список правил iptables</h3><p>Отображать все действующие правила лучше с детализацией и нумерацией строк:</p><pre spellcheck="false">iptables --line-numbers -L -v -n
+</pre><p>Ключ&nbsp;—line-numbers&nbsp;нумерует строки,&nbsp;-L&nbsp;выводит список правил всех цепочек,&nbsp;-v&nbsp;отвечает за детализацию вывода,&nbsp;-n&nbsp;выводит IP-адреса и номера портов в числовом формате.</p><p><br></p><h3 id="Как-удалить-правило-в-iptables">Как удалить правило в iptables</h3><p>В первую очередь необходимо определить номер правила, которое требуется удалить, выводим список действующих правил командой:</p><pre spellcheck="false">iptables --line-numbers -L -v -n
+</pre><p>Вывод:</p><pre spellcheck="false">Chain INPUT (policy ACCEPT 255 packets, 13366 bytes)
+num   pkts bytes target       prot  opt in     out     source               destination
+1            0        0 DROP        all   --    *      *       172.10.10.1         0.0.0.0/0
+2            0        0 ACCEPT      all   --    *      *       192.168.111.1      0.0.0.0/0
+3            0        0 ACCEPT      tcp   --    *      *        0.0.0.0/0             0.0.0.0/0           tcp dpt:22
+4            1      40 ACCEPT      tcp   --    *      *        0.0.0.0/0             0.0.0.0/0            tcp dpt:80
+5            1      40 ACCEPT     tcp   --    *      *        0.0.0.0/0             0.0.0.0/0            tcp dpt:443
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+
+Chain OUTPUT (policy ACCEPT 256 packets, 15806 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+</pre><p>Предположим, требуется удалить правило 4 в цепочке&nbsp;INPUT:</p><pre spellcheck="false">iptables -D INPUT 4
+</pre><p>Проверяем:</p><pre spellcheck="false">Chain INPUT (policy ACCEPT 77 packets, 8358 bytes)
+num   pkts bytes target       prot  opt in     out     source               destination
+1            0        0 DROP        all   --    *      *       172.10.10.1         0.0.0.0/0
+2            0        0 ACCEPT      all   --    *      *       192.168.111.1      0.0.0.0/0
+3            0      48 ACCEPT      tcp   --    *      *        0.0.0.0/0             0.0.0.0/0           tcp dpt:22
+5            1      40 ACCEPT     tcp   --    *      *        0.0.0.0/0             0.0.0.0/0            tcp dpt:443
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+
+Chain OUTPUT (policy ACCEPT 82 packets, 11150 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+</pre><p>Правило удалено.</p><p><br></p><h3 id="Как-очистить-список-правил-iptables">Как очистить список правил iptables</h3><p>Сброс всех правил обычно требуется совместно с изменением политики по умолчанию на&nbsp;ACCEPT, эта процедура связана с вводом набора правил, поэтому удобнее всего создать небольшой скрипт для автоматизации процесса:</p><pre spellcheck="false">nano /etc/iptables.reset
+</pre><p>Наполняем его командами:</p><pre spellcheck="false">#!/bin/bash
+colGreen="\033[32m"
+resetCol="\033[0m"
+echo -n "Flushing firewall rules and changing default policy to ACCEPT..."
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+echo -e "$colGreen Done! $resetCol"
+</pre><p>Сохраняем и выходим. Команды можно последовательно подавать вручную, но это замедляет работу и увеличивает риск ошибки за счет влияния человеческого фактора.</p><p>Делаем файл исполняемым:</p><pre spellcheck="false">chmod +x /etc/iptables.reset
+</pre><p>Даем команду:</p><pre spellcheck="false">/etc/iptables.reset
+</pre><p>Правила сброшены, применяется политика по умолчанию&nbsp;ACCEPT&nbsp;для всех цепочек.</p><h3 id="Как-сохранить-правила-iptables">Как сохранить правила iptables</h3><p>Утилита iptables, как и маршрутизаторы Cisco, не сохраняет правила, если это явно не указать и после перезагрузки возвращается в предыдущее состояние. Установим пакет:</p><pre spellcheck="false">apt install iptables-persistent
+</pre><p>В процессе установки на оба вопроса ответить Yes. Сохранить текущие правила:</p><pre spellcheck="false">service netfilter-persistent save
+</pre><p>Система при следующей загрузке использует последние сохраненные правила.</p><p><br></p><h3 id="Как-восстановить-правила">Как восстановить правила</h3><p>В процессе настройки брандмауэра, по разным причинам, возникает необходимость вернуться к заведомо рабочим, испытанным правилам. Сервис&nbsp;netfilter-persistent&nbsp;сохраняет их в файле&nbsp;/etc/iptables/rules.v4, если не успели сохранить активные правила, значит в файле предыдущая версия, восстанавливаем:</p><pre spellcheck="false">iptables-restore &lt; /etc/iptables/rules.v4
+</pre><h3 id="Как-записать-в-лог-событие">Как записать в лог событие</h3><p>В процессе отладки правил, требуется фиксировать события в системном журнале. Запретим входящие пакеты на порт 80:</p><pre spellcheck="false">iptables -A INPUT -p tcp --dport 80 -j LOG --log-prefix "ACCESS RESTRICTED: "
+iptables -A INPUT -p tcp --dport 80 -j DROP
+</pre><p>Убедимся, что записи событий ведутся. Откроем файл журнала:</p><pre spellcheck="false">nano /var/log/syslog
+</pre><p>В нем должны быть строки вида:</p><pre spellcheck="false">Apr 11 23:18:11 localhost kernel: [20400.047777] ACCESS RESTRICTED: IN=eth0 OUT= MAC=xx:yy:zz:xx:yy:zz:xx:yy:zz:xx:yy:zz:xx:yy SRC=111.222.121.212 DST=192.168.0.2 LEN=44 TOS=0x00 PREC=0x00 TTL=55 ID=49410 DF PROTO=TCP SPT=49170 DPT=80 WINDOW=65535 RES=0x00 SYN URGP=0
+</pre><h3 id="Примеры-настройки-iptables">Примеры настройки iptables</h3><p>В данном разделе рассмотрим задачи, с которыми придется столкнуться, работая с iptables.</p><p><br></p><h3 id="Как-заблокировать-IP-адрес-в-iptables">Как заблокировать IP-адрес в iptables</h3><p>Допустим, необходимо заблокировать компьютер с IP-адресом 172.10.10.1, тогда правило будет выглядеть следующим образом:</p><pre spellcheck="false">iptables -A INPUT -s 172.10.10.1 -j DROP
+</pre><h3 id="Как-разрешить-IP-адрес-в-iptables">Как разрешить IP-адрес в iptables</h3><p>Необходимо разрешить весь трафик к серверу для клиента с IP-адресом 192.168.111.1:</p><pre spellcheck="false">iptables -A INPUT -s 192.168.111.1 -j ACCEPT
+</pre><h3 id="Как-открыть-порт-в-iptables">Как открыть порт в iptables</h3><p>Предположим, что политика по умолчанию — блокировать все, что явно не разрешено. Откроем порты веб-сервера для обеспечения работы HTTP протокола — порт 80, и поддержки HTTPS протокола совместно с SSL — порт 443. Также для доступа к серверу по SSH откроем порт 22. Эту задачу можно решить как минимум двумя способами: создать однострочное правило, либо прописать правила по каждому из портов, рассмотрим оба. В одну строку:</p><pre spellcheck="false">iptables -A INPUT -p tcp -m multiport --dports 22,80,443 -j ACCEPT
+</pre><p>При использовании расширения multiport, всегда необходимо использовать критерий&nbsp;-p tcp&nbsp;или&nbsp;-p udp, таким образом, одной строкой можно указать до 15 разных портов через запятую. Важно не путать критерии —-dport&nbsp;и —-dports. Первый из них используется для указания одного порта, второй сразу для нескольких, аналогично с&nbsp;—sport&nbsp;и&nbsp;—sports.</p><p>Вариант многострочной записи — для каждого порта свое правило:</p><pre spellcheck="false">iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+</pre><h3 id="Как-закрыть-порт-в-iptables">Как закрыть порт в iptables</h3><p>Необходимость в закрытии порта может возникнуть, когда используется политика по умолчанию&nbsp;ACCEPT&nbsp;и доступ к определенному сервису нужно ограничить. Рассмотрим несколько ситуаций.</p><p>Закроем доступ к FTP серверу, работающему на 21 порту:</p><pre spellcheck="false">iptables -A INPUT -p tcp --dport 21 -j DROP
+</pre><p>Оставим доступ только себе к SSH серверу, для остальных запретим:</p><pre spellcheck="false">iptables -A INPUT -p tcp ! -s 192.168.124.5 --dport 22 -j DROP
+</pre><p>Здесь&nbsp;192.168.124.5&nbsp;— IP-адрес доверенной машины, знак&nbsp;!&nbsp;перед ключом&nbsp;-s&nbsp;используется для инверсии, т.е. всем, кроме этого адреса доступ закрыт.</p><p><br></p><h3 id="Как-разрешить-или-запретить-ICMP-ping-трафик">Как разрешить или запретить ICMP ping трафик</h3><p>Разрешить&nbsp;ping&nbsp;хоста:</p><pre spellcheck="false">iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
+</pre><p>Запретить входящие icmp-пакеты:</p><pre spellcheck="false">iptables -A INPUT -p icmp --icmp-type 8 -j DROP
+</pre><h3 id="Как-разрешить-трафик-на-локальном-узле">Как разрешить трафик на локальном узле</h3><p>Трафик на локальном сетевом интерфейсе lo должен быть разрешен для корректной работы сервисов, использующих для обмена данными интерфейс локальной петли, например, базы данных, прокси-сервер squid. Поэтому рекомендуется разрешить трафик на вход и выход:</p><pre spellcheck="false">iptables -A INPUT -i lo -j ACCEPT 
+iptables -A OUTPUT -o lo -j ACCEPT
+</pre><h3 id="Как-блокировать-трафик-по-MAC-адресу">Как блокировать трафик по MAC-адресу</h3><p>Устройство, которому хотим запретить доступ к серверу, имеет MAC-адрес&nbsp;00:0A:EF:76:23:12:</p><pre spellcheck="false">iptables -A INPUT -m mac --mac-source 00:0A:EF:76:23:12 -j DROP
+</pre><p>Здесь ключ&nbsp;-m&nbsp;вызывает расширение mac, ключ&nbsp;—mac-source&nbsp;задает MAC-адрес узла, с которого поступил пакет.</p><p><br></p><h3 id="Как-разрешить-трафик-по-MAC-адресу">Как разрешить трафик по MAC-адресу</h3><p>Необходимость может возникнуть в случае использования политики запрещения всего, что явно не разрешено, на практике редко встречается разрешение по MAC-адресам, команда iptables имеет вид:</p><pre spellcheck="false">iptables -A INPUT -m mac --mac-source 00:0A:EF:76:23:12 -j ACCEPT
+</pre><h3 id="Как-ограничить-доступ-по-времени">Как ограничить доступ по времени</h3><p>В iptables существует модуль time, который позволяет регулировать доступ согласно расписанию. Например, запретим доступ к FTP серверу в среду с 08:10 до 08:15:</p><pre spellcheck="false">iptables -I INPUT -p tcp --dport 21 -m time --kerneltz --timestart 08:10 --timestop 08:15 --weekdays We --syn -j DROP
+</pre><p>Рассмотрим подробнее значения ключей:</p><ul><li>—kerneltz&nbsp;— использование времени текущей временной зоны, иначе iptables будет работать по времени часового пояса UTC;</li><li>—timestart&nbsp;— время начала срабатывания условия, допустимый диапазон указания времени с 00:00:00 до 23:59:59, можно указывать время в коротком варианте ЧЧ:ММ, как это сделано в примере;</li><li>—timestop&nbsp;— время окончания действия условия, формат ввода аналогичен timestart;</li><li>—weekdays&nbsp;— дни недели, в которые условие будет работать, допустимые значения Mon, Tue, Wed, Thu, Fri, Sat, Sun, или значения от 1 до 7. Так же поддерживается формат в два символа, например Mo, Tu, We и т.д. При необходимости указать несколько дней — перечисляются через запятую, без пробела, например Fr,Su,We,Tu;</li><li>—monthdays&nbsp;— задает день месяца, допустимые значения от 1 до 31.</li></ul><h3 id="Настройка-NAT">Настройка NAT</h3><p>Преобразование сетевых адресов (от англ. Network Address Translation) используется на маршрутизаторах, для взаимного предоставления сервисов между сетями согласно определенным правилам. В iptables для этого предусмотрена таблица nat, для которой характерны действия&nbsp;DNAT,&nbsp;SNAT,&nbsp;MASQUERADE, каждое из них описано в начале статьи. Рассмотрим практические задачи.</p><h4 id="Проброс-порта">Проброс порта</h4><p>Дано: локальная сеть, состоящая из двух серверов и маршрутизатора с публичным IP-адресом.</p><p>Оба сервера имеют доступ в Интернет, но только один, используемый в качестве брандмауэра — имеет публичный IP-адрес. Наглядная схема на иллюстрации ниже.</p><p><br></p><figure contenteditable="false"><div class="figure_wrapper"><img src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/PR-15977_12x.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p><br></p><p>Это означает, что все пакеты, приходящие на публичный IP-адрес, доставляются сразу на компьютер с IP-адресом 192.168.0.2.</p><p>Задача: Предоставить доступ снаружи к веб-серверу с IP-адресом 192.168.0.3.</p><p>Решение: Все операции с iptables выполняются на сервере 192.168.0.2. В схеме получается два маршрутизатора. При запросе пользователем веб-страницы — пакет с маршрутизатора, который имеет публичный адрес, попадает на сервер-маршрутизатор 192.168.0.2, на порт 80, нужно его передать веб-серверу 192.168.0.3. Делаем первый шаг — меняем адрес назначения пакета:</p><pre spellcheck="false">iptables -t nat -A PREROUTING -p tcp -d 192.168.0.2 --dport 80 -j DNAT --to-destination 192.168.0.3:80
+</pre><p>DNAT используется, если необходимо пользователям глобальной сети предоставить доступ к компьютеру, находящемуся за маршрутизатором, т.е. во внутренней сети, это называется пробросом портов.</p><p>Теперь нужно поменять адрес отправителя пакета на адрес маршрутизатора 192.168.0.2, который передаст пакет маршрутизатору с публичным IP-адресом, а он уже в свою очередь доставит пакет клиенту, используем для этого SNAT. Делаем второй шаг:</p><pre spellcheck="false">iptables -t nat -A POSTROUTING -p tcp -d 192.168.0.3 --dport 80 -j SNAT --to-source 192.168.0.2
+</pre><p>Та же самая команда при использовании действия&nbsp;MASQUERADE&nbsp;не потребует ключа&nbsp;—to-source&nbsp;и указания адреса, поскольку в таком случае происходит автоматическая подмена адреса отправления на IP-адрес сетевого интерфейса, с которого ушел пакет:</p><pre spellcheck="false">iptables -t nat -A POSTROUTING -p tcp -d 192.168.0.3 --dport 80 -j MASQUERADE
+</pre><p>Проброс порта веб-сервера выполнен.</p><h4 id="Переадресация-порта-—-redirect">Переадресация порта — redirect</h4><p>Перенаправление пакетов, пришедших на один порт, другому порту, называют переадресацией. В качестве примера — предварительно настроим веб-сервер на работу с портом 8080, добавим следующие правила:</p><pre spellcheck="false">iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
+</pre><p>Действие&nbsp;REDIRECT&nbsp;выполняется в пределах одного сервера и имеет единственный ключ —-to-ports, указывающий порт назначения, этот ключ разрешается использовать, если критерий&nbsp;-p&nbsp;явно задает используемый протокол&nbsp;tcp&nbsp;или&nbsp;udp.</p><h4 id="Использование-в-качестве-маршрутизатора">Использование в качестве маршрутизатора</h4><p>Рассмотрим классическую схему для выхода в Интернет в рамках типового офиса. Имеется несколько компьютеров, которым надо предоставить доступ в глобальную сеть, один канал в Интернет, шлюз на основе компьютера c двумя сетевыми картами и операционной системой Linux.</p><p>Задача маршрутизатора не только предоставить доступ в Интернет, но еще и сделать это безопасно. Одна сетевая карта подключена в локальную сеть, по умолчанию будем считать доверенной зоной, другой сетевой адаптер с постоянным адресом подключен к сети Интернет. Схема подключения для наглядности:</p><p><br></p><figure contenteditable="false"><div class="figure_wrapper"><img src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/PR-15977_42x.png"></div><span class="cursor_wrapper" contenteditable="true"></span><figcaption class="editable_text" data-placeholder="Caption (optional)"></figcaption></figure><p><br></p><p><br></p><p>Создадим файл:</p><pre spellcheck="false">touch /etc/iptables.router
+</pre><p>Откроем, например, редактором nano:</p><pre spellcheck="false">nano /etc/iptables.router
+</pre><p>Ниже представлен набор правил iptables с комментариями, для реализации данной схемы, копируем эти строки в открытый файл:</p><pre spellcheck="false">#!/bin/bash
+# Объявление переменных
+export FW="iptables"
+# Интерфейс, подключенный к локальной сети
+LAN="enp16s0"
+# Интерфейс, подключенный к Интернету
+WAN="enp0s25"
+# Диапазон адресов локальной сети
+LAN_NET="192.168.30.0/24"
+
+# Очистка всех цепочек и удаление правил
+$FW -F
+$FW -F -t nat
+$FW -F -t mangle
+$FW -X
+$FW -t nat -X
+$FW -t mangle -X
+
+# Разрешить входящий трафик к интерфейсу локальной петли,
+# это необходимо для корректной работы некоторых сервисов
+$FW -A INPUT -i lo -j ACCEPT
+
+# Разрешить на внутреннем интерфейсе весь трафик из локальной сети
+$FW -A INPUT -i $LAN -s $LAN_NET -j ACCEPT
+
+# Позволяем два, наиболее безопасных типа пинга
+$FW -A INPUT -p icmp --icmp-type 0 -j ACCEPT
+$FW -A INPUT -p icmp --icmp-type 8 -j ACCEPT
+
+# Разрешить входящие соединения, которые были разрешены в рамках других соединений
+$FW -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Разрешить перенаправление трафика с внутренней сети наружу, как для новых,
+# так и уже имеющихся соединений в системе
+$FW -A FORWARD -i $LAN -o $WAN -m conntrack --ctstate NEW,RELATED,ESTABLISHED -j ACCEPT
+
+# Разрешить перенаправление только тех пакетов с внешней сети внутрь,
+# которые уже являются частью имеющихся соединений
+$FW -A FORWARD -i $WAN -o $LAN -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Выполняем трансляцию сетевых адресов, принадлежащих локальной сети
+$FW -t nat -A POSTROUTING -o $WAN -s $LAN_NET -j MASQUERADE
+
+# Устанавливаем политики по умолчанию:
+# Входящий трафик — сбрасывать; Проходящий трафик — сбрасывать; Исходящий — разрешать
+$FW -P INPUT DROP
+$FW -P FORWARD DROP
+$FW -P OUTPUT ACCEPT
+</pre><p>Важное замечание. Данный набор правил — это примитивный маршрутизатор, частный случай, представлен для наглядности и не претендует на руководство по безопасности. Поэтому, каждому, кто будет копировать, необходимо изменить его под свои нужды, как минимум переменные LAN, WAN и LAN_NET.</p><p>Сохраняем файл сочетанием нажатий клавиш Ctrl+O, нажимаем ENTER для подтверждения, затем Ctrl+X для выхода. Делаем файл исполняемым:</p><pre spellcheck="false">chmod +x /etc/iptables.router
+</pre><p>Активируем правила, выполнив подготовленный файл скрипта:</p><pre spellcheck="false">/etc/iptables.router
+</pre><p>Включаем маршрутизацию пакетов в системе:</p><pre spellcheck="false">sysctl -w net.ipv4.ip_forward=1
+</pre><p>Чтобы после перезагрузки маршрутизация заработала автоматически — нужно добавить в файл&nbsp;/etc/sysctl.conf&nbsp;строку или привести уже имеющуюся к виду:</p><pre spellcheck="false">net.ipv4.ip_forward = 1
+</pre><p>Осталось сохранить правила iptables:</p><pre spellcheck="false">service netfilter-persistent save
+</pre><p>Доступ в Интернет предоставлен.</p><p><a href="https://selectel.ru/" target="_blank">источник</a></p><p><br></p><p><br></p><p><br></p></div><div class="ql-clipboard" tabindex="-1" contenteditable="true"></div><div id="_tl_link_tooltip" class="tl_link_tooltip"></div><div id="_tl_tooltip" class="tl_tooltip">
+            <div class="buttons">
+              <span class="button_hover"></span>
+              <span class="button_group"><!--
+             --><button id="_bold_button"></button><!--
+             --><button id="_italic_button"></button><!--
+             --><button id="_link_button"></button><!--
+           --></span><!--
+           --><span class="button_group"><!--
+             --><button id="_header_button"></button><!--
+             --><button id="_subheader_button"></button><!--
+             --><button id="_quote_button"></button><!--
+           --></span>
+            </div>
+            <div class="prompt">
+              <span class="close"></span>
+              <div class="prompt_input_wrap"><input type="url" class="prompt_input"></div>
+            </div>
+          </div><div id="_tl_blocks" class="tl_blocks">
+            <div class="buttons">
+              <button id="_image_button"></button><!--
+           --><button id="_embed_button"></button>
+            </div>
+          </div></article>
+          
+          
+          
+          <aside class="tl_article_buttons">
+            <div class="account account_top"></div>
+            <button id="_edit_button" class="button edit_button">Edit</button><!--
+         --><button id="_publish_button" class="button publish_button">Publish</button>
+            <div class="account account_bottom"></div>
+            <div id="_error_msg" class="error_msg"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+    <div id="_tl_alerts" class="tl_alerts"></div>
+    
+    <script>var T={"apiUrl":"https:\/\/edit.legra.ph","datetime":1637875680,"pageId":"c27cf42efe73d198de322"};(function(){var b=document.querySelector('time');if(b&&T.datetime){var a=new Date(1E3*T.datetime),d='January February March April May June July August September October November December'.split(' ')[a.getMonth()],c=a.getDate();b.innerText=d+' '+(10>c?'0':'')+c+', '+a.getFullYear()}})();</script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/jquery.js"></script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/jquery_002.js"></script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/autosize.js"></script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/load-image.js"></script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/quill.js"></script>
+    <script src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/core.js"></script>
+    <script async="" src="%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0%20iptables%20%D0%B2%20Linux%20%E2%80%93%20Telegraph_files/_websync_"></script>
+  
+</body></html>
